@@ -155,18 +155,7 @@ public static class ConvertCommand
             string? primaryArtifactPath = null;
             var generatedFiles = new List<string>();
 
-            var progress = new Progress<InstallProgress>(p =>
-            {
-                if (!quiet && !jsonMode)
-                {
-                    if (p.Stage == InstallStage.Finalizing)
-                    {
-                        int pct = (int)(p.ProgressRatio * 100);
-                        string fileStr = !string.IsNullOrEmpty(p.CurrentFile) ? $" | {p.CurrentFile}" : "";
-                        Console.Write($"\r[Converting] {pct}%{fileStr}    ");
-                    }
-                }
-            });
+            using var progress = new ConsoleProgressReporter(quiet: quiet, jsonMode: jsonMode);
 
             switch (targetFormat)
             {

@@ -5,7 +5,6 @@ public class ConsoleLogger : ILogger
     private readonly bool _quiet;
     private readonly bool _verbose;
     private readonly bool _jsonMode;
-    private readonly object _lock = new();
 
     public ConsoleLogger(bool quiet = false, bool verbose = false, bool jsonMode = false)
     {
@@ -20,8 +19,12 @@ public class ConsoleLogger : ILogger
         if (_quiet && level < LogLevel.Warning) return;
         if (!_verbose && level == LogLevel.Debug) return;
 
-        lock (_lock)
+        lock (ConsoleProgressBar.GlobalLock)
         {
+            // Clear current active line if a spinner or progress bar is rendering
+            ConsoleProgressBar.ActiveBar?.ClearCurrentLine();
+            ConsoleSpinner.ActiveSpinner?.ClearCurrentLine();
+
             var prevColor = Console.ForegroundColor;
             switch (level)
             {

@@ -18,12 +18,22 @@ public static class ExtractCommand
 
         string target = Path.GetFullPath(args[0]);
         string? outputDir = null;
+        bool jsonMode = false;
+        bool quiet = false;
 
         for (int i = 1; i < args.Length; i++)
         {
             if ((args[i] == "--output" || args[i] == "-o") && i + 1 < args.Length)
             {
                 outputDir = args[++i];
+            }
+            else if (args[i].Equals("--json", StringComparison.OrdinalIgnoreCase))
+            {
+                jsonMode = true;
+            }
+            else if (args[i].Equals("--quiet", StringComparison.OrdinalIgnoreCase) || args[i].Equals("-q", StringComparison.OrdinalIgnoreCase))
+            {
+                quiet = true;
             }
         }
 
@@ -49,17 +59,12 @@ public static class ExtractCommand
 
         logger.LogInfo($"Extracting '{manifest.Game.Name}' to '{fullOutputDir}'...");
 
-        var progress = new Progress<InstallProgress>(p =>
-        {
-            int pct = (int)(p.ProgressRatio * 100);
-            string speedStr = p.SpeedBytesPerSecond > 0 ? $" | {SizeFormatter.FormatBytes((long)p.SpeedBytesPerSecond)}/s" : "";
-            Console.Write($"\r[Extracting] {pct}% ({SizeFormatter.FormatBytes(p.ProcessedBytes)}/{SizeFormatter.FormatBytes(p.TotalBytes)}){speedStr}    ");
-        });
+        using var progress = new ConsoleProgressReporter(quiet: quiet, jsonMode: jsonMode);
 
         var reader = new PackageReader(logger);
         var result = await reader.ExtractPackageAsync(manifest, packageDir, fullOutputDir, progress, cancellationToken);
 
-        Console.WriteLine();
+        if (!quiet && !jsonMode) Console.WriteLine();
         if (result.Success)
         {
             logger.LogInfo($"Extraction complete: {result.FilesExtracted} files extracted in {result.Elapsed.TotalSeconds:F1}s.");

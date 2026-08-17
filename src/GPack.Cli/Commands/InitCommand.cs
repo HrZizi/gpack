@@ -32,8 +32,19 @@ public static class InitCommand
             }
         }
 
-        logger.LogInfo($"Inspecting source directory: {sourceDir}");
-        var inspection = await FileScanner.InspectDirectoryAsync(sourceDir, cancellationToken);
+        bool quiet = args.Contains("--quiet") || args.Contains("-q");
+
+        InspectionResult inspection;
+        if (!quiet)
+        {
+            using var spinner = ConsoleSpinner.Start($"Inspecting source directory: {sourceDir}...");
+            inspection = await FileScanner.InspectDirectoryAsync(sourceDir, cancellationToken);
+            spinner.Stop(success: true, $"Inspection completed: {inspection.TotalFiles:N0} files ({SizeFormatter.FormatBytes(inspection.TotalSizeBytes)})");
+        }
+        else
+        {
+            inspection = await FileScanner.InspectDirectoryAsync(sourceDir, cancellationToken);
+        }
 
         string gameName = Path.GetFileName(sourceDir.TrimEnd('\\', '/'));
         string mainExe = inspection.LikelyMainExecutable ?? "";

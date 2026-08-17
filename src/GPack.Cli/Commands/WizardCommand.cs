@@ -141,8 +141,13 @@ public static class WizardCommand
         Console.WriteLine($"[✓] Source Directory: {sourceDir}");
 
         // 2. Inspection & Executable Detection
-        Console.WriteLine("\nAnalyzing directory and detecting executables...");
-        var inspection = await FileScanner.InspectDirectoryAsync(sourceDir, cancellationToken);
+        Console.WriteLine();
+        InspectionResult inspection;
+        using (var spinner = ConsoleSpinner.Start("Analyzing directory and detecting executables..."))
+        {
+            inspection = await FileScanner.InspectDirectoryAsync(sourceDir, cancellationToken);
+            spinner.Stop(success: true, $"Analyzed {inspection.TotalFiles:N0} files ({SizeFormatter.FormatBytes(inspection.TotalSizeBytes)})");
+        }
         string detectedFolder = Path.GetFileName(sourceDir.TrimEnd('\\', '/'));
 
         if (string.IsNullOrWhiteSpace(chosenExe))

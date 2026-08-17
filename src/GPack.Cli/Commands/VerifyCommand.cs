@@ -34,12 +34,16 @@ public static class VerifyCommand
 
         logger.LogInfo($"Verifying package '{manifest.Game.Name}' ({manifest.Payload.Chunks.Count} chunks)...");
 
+        bool quiet = args.Contains("--quiet") || args.Contains("-q");
+
         try
         {
+            using var progressBar = !quiet ? new ConsoleProgressBar() : null;
             using var chunkedStream = new ChunkedInputStream(packageDir, manifest.Payload.Chunks, verifyHashesOnRead: true);
             byte[] buffer = new byte[81920];
             long totalRead = 0;
             long totalSize = manifest.Payload.Chunks.Sum(c => c.Size);
+            var sw = System.Diagnostics.Stopwatch.StartNew();
 
             while (true)
             {
@@ -47,17 +51,31 @@ public static class VerifyCommand
                 if (read == 0) break;
                 totalRead += read;
 
-                int pct = totalSize > 0 ? (int)((double)totalRead / totalSize * 100) : 100;
-                Console.Write($"\r[Verifying] {pct}% ({SizeFormatter.FormatBytes(totalRead)}/{SizeFormatter.FormatBytes(totalSize)})    ");
+                double ratio = totalSize > 0 ? (double)totalRead / totalSize : 1.0;
+                double speed = sw.Elapsed.TotalSeconds > 0 ? totalRead / sw.Elapsed.TotalSeconds : 0;
+                TimeSpan? remaining = speed > 0 && totalSize > totalRead
+                    ? TimeSpan.FromSeconds((totalSize - totalRead) / speed)
+                    : null;
+
+                progressBar?.Report(new InstallProgress(
+                    Stage: InstallStage.Verifying,
+                    ProcessedBytes: totalRead,
+                    TotalBytes: totalSize,
+                    CurrentFile: null,
+                    ProgressRatio: ratio,
+                    SpeedBytesPerSecond: speed,
+                    EstimatedRemaining: remaining
+                ));
             }
 
-            Console.WriteLine();
+            progressBar?.Complete();
+            if (!quiet) Console.WriteLine();
             logger.LogInfo("All payload chunk SHA-256 hashes successfully verified!");
             return ExitCodes.Success;
         }
         catch (Exception ex)
         {
-            Console.WriteLine();
+            if (!quiet) Console.WriteLine();
             logger.LogError($"Verification failed: {ex.Message}");
             return ExitCodes.VerificationFailed;
         }

@@ -171,46 +171,14 @@ public static class BuildCommand
         config.Automation.Verbose = verbose;
 
         // Progress handling
-        DateTime lastJsonReport = DateTime.MinValue;
-        var progress = new Progress<InstallProgress>(p =>
-        {
-            if (jsonMode)
-            {
-                // Rate-limit progress json events to max 10 per second to avoid flooding stdout
-                if ((DateTime.UtcNow - lastJsonReport).TotalMilliseconds >= 100 || p.ProgressRatio >= 1.0)
-                {
-                    lastJsonReport = DateTime.UtcNow;
-                    var evt = new JsonProgressEvent
-                    {
-                        Event = "progress",
-                        Stage = p.Stage.ToString().ToLowerInvariant(),
-                        Progress = Math.Round(p.ProgressRatio, 4),
-                        ProcessedBytes = p.ProcessedBytes,
-                        TotalBytes = p.TotalBytes,
-                        CurrentFile = p.CurrentFile,
-                        SpeedBytesPerSec = p.SpeedBytesPerSecond
-                    };
-                    Console.WriteLine(JsonSerializer.Serialize(evt));
-                }
-            }
-            else if (!quiet)
-            {
-                if (p.Stage == InstallStage.Compressing || p.Stage == InstallStage.Hashing)
-                {
-                    int pct = (int)(p.ProgressRatio * 100);
-                    string speedStr = p.SpeedBytesPerSecond > 0 ? $" | {SizeFormatter.FormatBytes((long)p.SpeedBytesPerSecond)}/s" : "";
-                    string remainStr = p.EstimatedRemaining.HasValue ? $" | ETA: {p.EstimatedRemaining.Value:mm\\:ss}" : "";
-                    Console.Write($"\r[{p.Stage}] {pct}% ({SizeFormatter.FormatBytes(p.ProcessedBytes)}/{SizeFormatter.FormatBytes(p.TotalBytes)}){speedStr}{remainStr}    ");
-                }
-            }
-        });
+        using var progress = new ConsoleProgressReporter(quiet: quiet, jsonMode: jsonMode);
 
         var buildEngine = new BuildEngine(logger);
         var result = await buildEngine.BuildAsync(config, progress, cancellationToken);
 
         if (!jsonMode && !quiet)
         {
-            Console.WriteLine(); // New line after progress bar
+            Console.WriteLine();
         }
 
         if (jsonMode)

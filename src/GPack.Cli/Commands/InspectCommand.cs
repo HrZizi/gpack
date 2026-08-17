@@ -22,9 +22,19 @@ public static class InspectCommand
         }
 
         bool showLargest = args.Contains("--largest") || args.Contains("-l");
+        bool quiet = args.Contains("--quiet") || args.Contains("-q");
 
-        logger.LogInfo($"Analyzing directory: {sourceDir}");
-        var inspection = await FileScanner.InspectDirectoryAsync(sourceDir, cancellationToken);
+        InspectionResult inspection;
+        if (!quiet)
+        {
+            using var spinner = ConsoleSpinner.Start($"Analyzing directory: {sourceDir}...");
+            inspection = await FileScanner.InspectDirectoryAsync(sourceDir, cancellationToken);
+            spinner.Stop(success: true, $"Analyzed {inspection.TotalFiles:N0} files ({SizeFormatter.FormatBytes(inspection.TotalSizeBytes)})");
+        }
+        else
+        {
+            inspection = await FileScanner.InspectDirectoryAsync(sourceDir, cancellationToken);
+        }
 
         Console.WriteLine();
         Console.WriteLine("==================================================");

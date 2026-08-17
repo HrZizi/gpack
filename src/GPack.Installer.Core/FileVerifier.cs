@@ -35,6 +35,7 @@ public class FileVerifier
 
         long totalBytes = expectedFiles.Sum(f => f.Size);
         long processedBytes = 0;
+        var sw = System.Diagnostics.Stopwatch.StartNew();
 
         foreach (var entry in expectedFiles)
         {
@@ -55,13 +56,19 @@ public class FileVerifier
 
             processedBytes += entry.Size;
             double ratio = totalBytes > 0 ? (double)processedBytes / totalBytes : 1.0;
+            double speed = sw.Elapsed.TotalSeconds > 0 ? processedBytes / sw.Elapsed.TotalSeconds : 0;
+            TimeSpan? remaining = speed > 0 && totalBytes > processedBytes
+                ? TimeSpan.FromSeconds((totalBytes - processedBytes) / speed)
+                : null;
 
             progress?.Report(new InstallProgress(
                 Stage: InstallStage.Verifying,
                 ProcessedBytes: processedBytes,
                 TotalBytes: totalBytes,
                 CurrentFile: entry.Path,
-                ProgressRatio: ratio
+                ProgressRatio: ratio,
+                SpeedBytesPerSecond: speed,
+                EstimatedRemaining: remaining
             ));
         }
 

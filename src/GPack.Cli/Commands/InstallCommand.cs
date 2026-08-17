@@ -33,6 +33,9 @@ public static class InstallCommand
             LaunchAfterInstall = false
         };
 
+        bool jsonMode = false;
+        bool quiet = false;
+
         for (int i = 1; i < args.Length; i++)
         {
             string arg = args[i];
@@ -64,6 +67,14 @@ public static class InstallCommand
             {
                 options.LaunchAfterInstall = true;
             }
+            else if (arg.Equals("--json", StringComparison.OrdinalIgnoreCase))
+            {
+                jsonMode = true;
+            }
+            else if (arg.Equals("--quiet", StringComparison.OrdinalIgnoreCase) || arg.Equals("-q", StringComparison.OrdinalIgnoreCase))
+            {
+                quiet = true;
+            }
         }
 
         if (string.IsNullOrWhiteSpace(options.DestinationDirectory))
@@ -72,25 +83,12 @@ public static class InstallCommand
             return ExitCodes.InvalidArguments;
         }
 
-        var progress = new Progress<InstallProgress>(p =>
-        {
-            if (p.Stage == InstallStage.Extracting || p.Stage == InstallStage.Verifying)
-            {
-                int pct = (int)(p.ProgressRatio * 100);
-                string speedStr = p.SpeedBytesPerSecond > 0 ? $" | {SizeFormatter.FormatBytes((long)p.SpeedBytesPerSecond)}/s" : "";
-                string fileStr = !string.IsNullOrEmpty(p.CurrentFile) ? $" | {p.CurrentFile}" : "";
-                Console.Write($"\r[{p.Stage}] {pct}% ({SizeFormatter.FormatBytes(p.ProcessedBytes)}/{SizeFormatter.FormatBytes(p.TotalBytes)}){speedStr}    ");
-            }
-            else
-            {
-                Console.WriteLine($"\r[{p.Stage}] {(p.CurrentFile ?? "")}");
-            }
-        });
+        using var progress = new ConsoleProgressReporter(quiet: quiet, jsonMode: jsonMode);
 
         var engine = new InstallerEngine(logger);
         var result = await engine.InstallAsync(options, progress, cancellationToken);
 
-        Console.WriteLine();
+        if (!quiet && !jsonMode) Console.WriteLine();
         if (result.Success)
         {
             logger.LogInfo($"Installation successful to: {result.DestinationDirectory}");

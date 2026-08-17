@@ -1,0 +1,286 @@
+<Window x:Class="GPack.Installer.UI.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:GPack.Installer.UI.ViewModels"
+        mc:Ignorable="d"
+        Title="{Binding Brand}"
+        Width="780" Height="480"
+        WindowStartupLocation="CenterScreen"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ResizeMode="CanMinimize"
+        FontFamily="Segoe UI Variable Text, Segoe UI, sans-serif"
+        SnapsToDevicePixels="True">
+
+    <!-- Outer Window Frame -->
+    <Border Background="{StaticResource WindowBgBrush}"
+            BorderBrush="{StaticResource BorderBrush}"
+            BorderThickness="1"
+            CornerRadius="4"
+            ClipToBounds="True"
+            MouseLeftButtonDown="Window_MouseLeftButtonDown">
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <!-- 1. Broader Artwork Area (~240px) -->
+                <ColumnDefinition Width="240"/>
+                <!-- 2. Main Content Area -->
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- LEFT ARTWORK PANEL: Dark background with prominent glowing artwork & branding -->
+            <Border Grid.Column="0"
+                    Background="{StaticResource SidebarBgBrush}"
+                    BorderBrush="{StaticResource BorderBrush}"
+                    BorderThickness="0,0,1,0"
+                    ClipToBounds="True">
+                <Grid>
+                    <!-- 1. Ambient Radial Bloom Glow behind central ornament -->
+                    <Ellipse Width="240" Height="360"
+                             HorizontalAlignment="Center" VerticalAlignment="Center"
+                             Opacity="0.4"
+                             IsHitTestVisible="False">
+                        <Ellipse.Fill>
+                            <RadialGradientBrush Center="0.5,0.5" GradientOrigin="0.5,0.5" RadiusX="0.5" RadiusY="0.5">
+                                <GradientStop Color="#00F0FF" Offset="0"/>
+                                <GradientStop Color="#0088AA" Offset="0.38"/>
+                                <GradientStop Color="#00000000" Offset="1"/>
+                            </RadialGradientBrush>
+                        </Ellipse.Fill>
+                    </Ellipse>
+
+                    <!-- 2. Outer Radiant Cyan Glow Layer -->
+                    <Image Source="{Binding ArtworkImage}"
+                           Stretch="Uniform"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Stretch"
+                           Margin="12,18,12,38"
+                           RenderOptions.BitmapScalingMode="HighQuality">
+                        <Image.Effect>
+                            <DropShadowEffect Color="#00E5FF"
+                                              BlurRadius="24"
+                                              ShadowDepth="0"
+                                              Opacity="1.0"
+                                              RenderingBias="Quality"/>
+                        </Image.Effect>
+                    </Image>
+
+                    <!-- 3. Tight Inner Cyan Edge Glow Layer -->
+                    <Image Source="{Binding ArtworkImage}"
+                           Stretch="Uniform"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Stretch"
+                           Margin="12,18,12,38"
+                           RenderOptions.BitmapScalingMode="HighQuality">
+                        <Image.Effect>
+                            <DropShadowEffect Color="#B8F7FF"
+                                              BlurRadius="6"
+                                              ShadowDepth="0"
+                                              Opacity="0.85"
+                                              RenderingBias="Quality"/>
+                        </Image.Effect>
+                    </Image>
+
+                    <!-- 4. NAGELREPACKS Branding Text -->
+                    <TextBlock Text="N A G E L R E P A C K S"
+                               Foreground="{StaticResource TextHeaderMutedBrush}"
+                               FontWeight="SemiBold"
+                               FontSize="10"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Bottom"
+                               Margin="0,0,0,16"
+                               Opacity="0.85"/>
+                </Grid>
+            </Border>
+
+            <!-- MAIN CONTENT AREA -->
+            <Grid Grid.Column="1" Background="{StaticResource WindowBgBrush}">
+                <Grid.RowDefinitions>
+                    <!-- Top Window Titlebar Row (Controls) -->
+                    <RowDefinition Height="32"/>
+                    <!-- Main Four-Group Body Layout -->
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <!-- Top Window Controls (Minimize, Close) -->
+                <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,3,4,0">
+                    <Button Command="{Binding MinimizeCommand}" Style="{StaticResource WindowBtnStyle}" ToolTip="Minimize">
+                        <Path Data="M0,0 L9,0" Stroke="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" StrokeThickness="1.2" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                    </Button>
+                    <Button Command="{Binding CloseCommand}" Style="{StaticResource WindowCloseBtnStyle}" ToolTip="Close">
+                        <Path Data="M0,0 L8,8 M8,0 L0,8" Stroke="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" StrokeThickness="1.2" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                    </Button>
+                </StackPanel>
+
+                <!-- Four Clear Groups Layout -->
+                <Grid Grid.Row="1" Margin="36,2,36,26">
+                    <Grid.RowDefinitions>
+                        <!-- Group 1: Game Title & Version -->
+                        <RowDefinition Height="Auto"/>
+                        <!-- Group 2: Installation Options -->
+                        <RowDefinition Height="Auto"/>
+                        <!-- Spacer between Form and Status -->
+                        <RowDefinition Height="*"/>
+                        <!-- Group 3: Installation Status & Progress -->
+                        <RowDefinition Height="Auto"/>
+                        <!-- Group 4: Footer Actions -->
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- GROUP 1: Game Title & Version -->
+                    <StackPanel Grid.Row="0" Margin="0,0,0,22">
+                        <!-- Game Title: Wraps naturally to 2nd line if long, thin elegant typography -->
+                        <TextBlock Text="{Binding DisplayGameName}"
+                                   Foreground="{StaticResource TextMainBrush}"
+                                   FontWeight="Light"
+                                   FontSize="22"
+                                   TextWrapping="Wrap"
+                                   LineHeight="26"
+                                   MaxHeight="54"/>
+
+                        <!-- Version: Directly below title in cyan -->
+                        <TextBlock Text="{Binding VersionText}"
+                                   Foreground="{StaticResource CyanHighlightBrush}"
+                                   FontWeight="Medium"
+                                   FontSize="12"
+                                   Margin="0,3,0,0"/>
+                    </StackPanel>
+
+                    <!-- GROUP 2: Installation Options -->
+                    <StackPanel Grid.Row="1" Margin="0,0,0,10">
+                        <!-- Install Location Label -->
+                        <TextBlock Text="INSTALL LOCATION"
+                                   Foreground="{StaticResource TextHeaderMutedBrush}"
+                                   FontWeight="SemiBold"
+                                   FontSize="10"
+                                   Margin="0,0,0,6"/>
+
+                        <!-- Path Field Box with Visual Divider for Browse Button -->
+                        <Border Background="{StaticResource InputBgBrush}"
+                                BorderBrush="{StaticResource InputBorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="3"
+                                Height="40"
+                                Margin="0,0,0,12">
+                            <Grid>
+                                <!-- Path Text Box -->
+                                <TextBox Text="{Binding DestinationDirectory, UpdateSourceTrigger=PropertyChanged}"
+                                         Background="Transparent"
+                                         Foreground="{StaticResource TextMainBrush}"
+                                         BorderThickness="0"
+                                         Padding="12,0,12,0"
+                                         VerticalContentAlignment="Center"
+                                         FontSize="12.5"
+                                         Margin="0,0,40,0"
+                                         IsEnabled="{Binding IsReadyState}"/>
+
+                                <!-- Browse Button with subtle vertical divider -->
+                                <Border HorizontalAlignment="Right"
+                                        Width="40"
+                                        BorderBrush="{StaticResource InputBorderBrush}"
+                                        BorderThickness="1,0,0,0">
+                                    <Button Command="{Binding BrowseDirectoryCommand}"
+                                            Style="{StaticResource FolderPickerBtnStyle}"
+                                            ToolTip="Browse directory"
+                                            IsEnabled="{Binding IsReadyState}"/>
+                                </Border>
+                            </Grid>
+                        </Border>
+
+                        <!-- Desktop Shortcut Checkbox -->
+                        <CheckBox Content="Create desktop shortcut"
+                                  IsChecked="{Binding CreateDesktopShortcut}"
+                                  IsEnabled="{Binding IsReadyState}"
+                                  Margin="0,0,0,0"/>
+                    </StackPanel>
+
+                    <!-- Spacer in Grid.Row 2 -->
+
+                    <!-- GROUP 3: Installation Status & Progress (Moved higher, directly connected) -->
+                    <StackPanel Grid.Row="3" Margin="0,0,0,24">
+                        <!-- Top Line: Status Title (Left) and Percentage (Right) -->
+                        <Grid Margin="0,0,0,4">
+                            <TextBlock Text="{Binding StatusHeaderUpper}"
+                                       Foreground="{StaticResource TextHeaderMutedBrush}"
+                                       FontWeight="SemiBold"
+                                       FontSize="11"/>
+                            <TextBlock Text="{Binding ProgressPercentage, StringFormat='{}{0}%'}"
+                                       HorizontalAlignment="Right"
+                                       Foreground="{StaticResource CyanHighlightBrush}"
+                                       FontWeight="Bold"
+                                       FontSize="11.5"/>
+                        </Grid>
+
+                        <!-- Subtitle: Extracted Bytes & Speed / Remaining -->
+                        <TextBlock Text="{Binding StatusDetailLine}"
+                                   Foreground="{StaticResource TextMutedBrush}"
+                                   FontSize="10.5"
+                                   TextTrimming="CharacterEllipsis"
+                                   Margin="0,0,0,8"/>
+
+                        <!-- Thin Flat Progress Bar -->
+                        <ProgressBar Value="{Binding ProgressPercentage}"
+                                     Maximum="100"
+                                     Height="4"/>
+                    </StackPanel>
+
+                    <!-- GROUP 4: Footer Actions (Same baseline, structured row) -->
+                    <Grid Grid.Row="4">
+                        <!-- Left Action: VIEW LOGS -->
+                        <Button Content="VIEW LOGS"
+                                Command="{Binding OpenLogsCommand}"
+                                Style="{StaticResource SecondaryActionBtnStyle}"
+                                HorizontalAlignment="Left"
+                                MinWidth="110"
+                                Height="38"/>
+
+                        <!-- Right Action Buttons -->
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                            <!-- 1. Ready State: INSTALL Button -->
+                            <Button Content="INSTALL"
+                                    Command="{Binding PrimaryActionCommand}"
+                                    Style="{StaticResource PrimaryActionBtnStyle}"
+                                    Visibility="{Binding IsReadyState, Converter={StaticResource BoolToVis}}"
+                                    MinWidth="145"
+                                    Height="38"/>
+
+                            <!-- 2. Installing State: CANCEL Button -->
+                            <Button Content="CANCEL"
+                                    Command="{Binding CancelInstallCommand}"
+                                    Style="{StaticResource SecondaryActionBtnStyle}"
+                                    Visibility="{Binding IsInstallingState, Converter={StaticResource BoolToVis}}"
+                                    MinWidth="120"
+                                    Height="38"/>
+
+                            <!-- 3. Completed State: CLOSE + LAUNCH Buttons -->
+                            <StackPanel Orientation="Horizontal" Visibility="{Binding IsCompletedState, Converter={StaticResource BoolToVis}}">
+                                <Button Content="CLOSE"
+                                        Command="{Binding CloseCommand}"
+                                        Style="{StaticResource SecondaryActionBtnStyle}"
+                                        MinWidth="100"
+                                        Height="38"
+                                        Margin="0,0,10,0"/>
+                                <Button Content="LAUNCH"
+                                        Command="{Binding LaunchGameCommand}"
+                                        Style="{StaticResource PrimaryActionBtnStyle}"
+                                        MinWidth="130"
+                                        Height="38"/>
+                            </StackPanel>
+
+                            <!-- 4. Error State: CLOSE Button -->
+                            <Button Content="CLOSE"
+                                    Command="{Binding CloseCommand}"
+                                    Style="{StaticResource SecondaryActionBtnStyle}"
+                                    Visibility="{Binding IsErrorState, Converter={StaticResource BoolToVis}}"
+                                    MinWidth="110"
+                                    Height="38"/>
+                        </StackPanel>
+                    </Grid>
+
+                </Grid>
+            </Grid>
+        </Grid>
+    </Border>
+</Window>

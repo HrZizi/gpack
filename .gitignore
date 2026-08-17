@@ -1,0 +1,41 @@
+## .NET & Visual Studio
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+*.user
+*.userosscache
+*.sln.docstates
+*.suo
+*.userprefs
+.vs/
+.vscode/
+*.DotSettings.user
+
+## Test Results & Coverage
+TestResults/
+[Tt]est[Rr]esult*/
+*.trx
+coverage*.xml
+coverage*.json
+
+## GPack & NagelRepacks Output Artifacts
+*.gpack
+*.gpk
+*-NagelRepacks/
+.gpack-install-*/
+.gpack-install-state.json
+artifacts/
+publish/
+
+## Logs
+*.log
+logs/
+%LOCALAPPDATA%/NagelRepacks/
+
+## OS & Scratch
+Thumbs.db
+Desktop.ini
+.DS_Store
+scratch/
+tmp/

@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>gpack</AssemblyName>
+    <LangVersion>latest</LangVersion>
+    <ApplicationIcon>assets\gpack.ico</ApplicationIcon>
+    <PublishSingleFile>true</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\GPack.Core\GPack.Core.csproj" />
+    <ProjectReference Include="..\GPack.Builder\GPack.Builder.csproj" />
+    <ProjectReference Include="..\GPack.Installer.Core\GPack.Installer.Core.csproj" />
+  </ItemGroup>
+
+</Project>

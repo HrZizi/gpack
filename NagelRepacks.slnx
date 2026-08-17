@@ -1,0 +1,15 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/GPack.Abstractions/GPack.Abstractions.csproj" />
+    <Project Path="src/GPack.Builder/GPack.Builder.csproj" />
+    <Project Path="src/GPack.Cli/GPack.Cli.csproj" />
+    <Project Path="src/GPack.Core/GPack.Core.csproj" />
+    <Project Path="src/GPack.Installer.Core/GPack.Installer.Core.csproj" />
+    <Project Path="src/GPack.Installer.UI/GPack.Installer.UI.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/GPack.Builder.Tests/GPack.Builder.Tests.csproj" />
+    <Project Path="tests/GPack.Core.Tests/GPack.Core.Tests.csproj" />
+    <Project Path="tests/GPack.Installer.Tests/GPack.Installer.Tests.csproj" />
+  </Folder>
+</Solution>

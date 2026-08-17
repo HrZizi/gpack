@@ -74,6 +74,14 @@ public static class BuildCommand
             {
                 if (i + 1 < args.Length) config.Package.OutputDirectory = args[++i];
             }
+            else if (arg.Equals("--format", StringComparison.OrdinalIgnoreCase) || arg.Equals("-f", StringComparison.OrdinalIgnoreCase) || arg.Equals("--output-format", StringComparison.OrdinalIgnoreCase))
+            {
+                if (i + 1 < args.Length) config.Package.Format = args[++i];
+            }
+            else if (arg.Equals("--part-size", StringComparison.OrdinalIgnoreCase))
+            {
+                if (i + 1 < args.Length) config.Package.PartSize = args[++i];
+            }
             else if (arg.Equals("--compression", StringComparison.OrdinalIgnoreCase) || arg.Equals("-c", StringComparison.OrdinalIgnoreCase))
             {
                 if (i + 1 < args.Length) config.Package.Compression = args[++i];
@@ -211,7 +219,9 @@ public static class BuildCommand
             {
                 var completeEvt = new JsonCompleteEvent
                 {
+                    Format = result.OutputFormat.ToString().ToLowerInvariant(),
                     OutputDirectory = result.OutputDirectory,
+                    OutputArtifact = result.OutputArtifactPath,
                     Package = result.ManifestFilePath
                 };
                 Console.WriteLine(JsonSerializer.Serialize(completeEvt));
@@ -233,7 +243,19 @@ public static class BuildCommand
                 Console.WriteLine();
                 Console.WriteLine("==================================================");
                 Console.WriteLine("PACKAGING COMPLETE!");
-                Console.WriteLine($"Output Folder: {result.OutputDirectory}");
+                Console.WriteLine($"Format:        {result.OutputFormat.ToFriendlyString()}");
+                if (!string.IsNullOrEmpty(result.OutputArtifactPath) && result.OutputFormat != PackageOutputFormat.Directory)
+                {
+                    Console.WriteLine($"Artifact:      {result.OutputArtifactPath}");
+                    if (result.GeneratedFiles.Count > 1)
+                    {
+                        Console.WriteLine($"Total Files:   {result.GeneratedFiles.Count} archive parts");
+                    }
+                }
+                else
+                {
+                    Console.WriteLine($"Output Folder: {result.OutputDirectory}");
+                }
                 Console.WriteLine($"Manifest:      {Path.GetFileName(result.ManifestFilePath)}");
                 if (!string.IsNullOrEmpty(result.InstallerFilePath))
                     Console.WriteLine($"Installer:     {Path.GetFileName(result.InstallerFilePath)}");

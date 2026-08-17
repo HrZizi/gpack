@@ -48,6 +48,7 @@ public static class Program
                 "init" => await InitCommand.ExecuteAsync(commandArgs, multiLogger, cts.Token),
                 "inspect" => await InspectCommand.ExecuteAsync(commandArgs, multiLogger, cts.Token),
                 "build" => await BuildCommand.ExecuteAsync(commandArgs, multiLogger, cts.Token),
+                "convert" or "pack" or "switch" => await ConvertCommand.ExecuteAsync(commandArgs, multiLogger, cts.Token),
                 "info" => await InfoCommand.ExecuteAsync(commandArgs, multiLogger, cts.Token),
                 "verify" => await VerifyCommand.ExecuteAsync(commandArgs, multiLogger, cts.Token),
                 "extract" => await ExtractCommand.ExecuteAsync(commandArgs, multiLogger, cts.Token),
@@ -88,10 +89,18 @@ public static class Program
         Console.WriteLine("  init <dir>                 Generate starter package YAML definition from directory");
         Console.WriteLine("  inspect <dir> [--largest]  Analyze directory, detect main executables and stats");
         Console.WriteLine("  build [config | options]   Build .gpack package and standalone installer");
+        Console.WriteLine("  convert <pkg> --format <f> Convert an existing repack between folder, zip, iso, rar");
         Console.WriteLine("  info <package.gpack>       Display package manifest metadata and statistics");
         Console.WriteLine("  verify <package.gpack>     Verify chunk and manifest SHA-256 integrity");
         Console.WriteLine("  extract <pkg> -o <dir>     Directly decompress and extract package payload");
         Console.WriteLine("  install <pkg> -d <dir>     Headless installer engine execution");
+        Console.WriteLine();
+        Console.WriteLine("BUILD & WIZARD OPTIONS:");
+        Console.WriteLine("  --format, -f <fmt>         Output format: directory (default), iso, zip, rar, parted-rar");
+        Console.WriteLine("  --part-size <size>         Part size for parted-rar (e.g. 4GB, 2GB, 500MB)");
+        Console.WriteLine("  --compression, -c <preset> Compression preset: balanced (default), fast, maximum, none");
+        Console.WriteLine("  --split-size <size>        Payload chunk split size (default: 4GB, capped at 2GB for ISO)");
+        Console.WriteLine("  --output, -o <path>        Output directory for generated packages/archives");
         Console.WriteLine();
         Console.WriteLine("GLOBAL OPTIONS:");
         Console.WriteLine("  --json                     Output machine-readable line-delimited JSON events");
@@ -104,6 +113,11 @@ public static class Program
         Console.WriteLine("EXAMPLES:");
         Console.WriteLine("  gpack inspect \"D:\\Games\\Game\"");
         Console.WriteLine("  gpack build \"D:\\Games\\Game\" --name \"My Game\" --compression balanced");
+        Console.WriteLine("  gpack build \"D:\\Games\\Game\" --name \"My Game\" --format iso");
+        Console.WriteLine("  gpack build \"D:\\Games\\Game\" --name \"My Game\" --format zip");
+        Console.WriteLine("  gpack convert \"D:\\Repacks\\MyGame-NagelRepacks.zip\" --format iso");
+        Console.WriteLine("  gpack convert \"D:\\Repacks\\MyGame-NagelRepacks\" --format parted-rar --part-size 2GB");
+        Console.WriteLine("  gpack build \"D:\\Games\\Game\" --name \"My Game\" --format parted-rar --part-size 2GB");
         Console.WriteLine("  gpack build game.gpack.yaml --output \"D:\\Repacks\"");
         Console.WriteLine("  gpack verify \"D:\\Repacks\\MyGame-NagelRepacks\\MyGame.gpack\"");
         Console.WriteLine("  gpack install \"D:\\Repacks\\MyGame-NagelRepacks\\MyGame.gpack\" -d \"C:\\Games\\MyGame\"");

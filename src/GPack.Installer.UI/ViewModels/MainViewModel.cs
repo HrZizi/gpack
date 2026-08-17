@@ -172,6 +172,20 @@ public class MainViewModel : INotifyPropertyChanged
         set { _createStartMenuShortcut = value; OnPropertyChanged(); }
     }
 
+    private bool _hasCustomArtwork = false;
+    public bool HasCustomArtwork
+    {
+        get => _hasCustomArtwork;
+        set
+        {
+            _hasCustomArtwork = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(IsDefaultArtwork));
+        }
+    }
+
+    public bool IsDefaultArtwork => !_hasCustomArtwork;
+
     public ImageSource? ArtworkImage
     {
         get => _artworkImage;
@@ -354,6 +368,7 @@ public class MainViewModel : INotifyPropertyChanged
                 bitmap.EndInit();
                 bitmap.Freeze();
 
+                HasCustomArtwork = true;
                 ArtworkImage = bitmap;
                 return;
             }
@@ -370,6 +385,7 @@ public class MainViewModel : INotifyPropertyChanged
                     var bitmap = LoadBitmapFromFile(candidatePath);
                     if (bitmap != null)
                     {
+                        HasCustomArtwork = true;
                         ArtworkImage = bitmap;
                         return;
                     }
@@ -386,6 +402,7 @@ public class MainViewModel : INotifyPropertyChanged
                     var bitmap = LoadBitmapFromFile(candidate);
                     if (bitmap != null)
                     {
+                        HasCustomArtwork = true;
                         ArtworkImage = bitmap;
                         return;
                     }
@@ -403,6 +420,7 @@ public class MainViewModel : INotifyPropertyChanged
 
     private void LoadDefaultArtwork()
     {
+        HasCustomArtwork = false;
         try
         {
             var uri = new Uri("pack://application:,,,/Assets/default_artwork.png", UriKind.Absolute);

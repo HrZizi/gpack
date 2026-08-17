@@ -11,4 +11,8 @@
     <ProjectReference Include="..\GPack.Core\GPack.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="LTRData.DiscUtils.Iso9660" Version="1.0.88" />
+  </ItemGroup>
+
 </Project>

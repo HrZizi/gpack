@@ -40,6 +40,8 @@ public class LaunchConfig
 
 public class PackageConfig
 {
+    public string Format { get; set; } = "directory"; // directory | iso | zip | rar | parted-rar
+    public string? PartSize { get; set; } // for parted-rar (e.g. "4GB", "2GB", "500MB")
     public string Compression { get; set; } = "balanced"; // none | fast | balanced | maximum
     public int? CompressionLevel { get; set; }
     public string SplitSize { get; set; } = "4GB";

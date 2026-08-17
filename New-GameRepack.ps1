@@ -22,6 +22,8 @@ param (
     [string]$Exe,
     [string]$Compression,
     [string]$SplitSize,
+    [string]$Format,
+    [string]$PartSize,
     [string]$OutputDir,
     [string]$SetupExePath,
     [switch]$Yes
@@ -189,6 +191,34 @@ if ([string]::IsNullOrWhiteSpace($Version)) {
 }
 Write-Success "Version: $Version"
 
+if ([string]::IsNullOrWhiteSpace($Artwork)) {
+    $possibleArtworks = @("artwork.jpg", "artwork.png", "cover.jpg", "cover.png", "banner.jpg", "banner.png")
+    $detectedArt = $null
+    foreach ($art in $possibleArtworks) {
+        $cand = Join-Path $SourceDir $art
+        if (Test-Path $cand) {
+            $detectedArt = $cand
+            break
+        }
+    }
+    $artPromptDefault = if ($detectedArt) { Split-Path $detectedArt -Leaf } else { "None / Default" }
+
+    if (-not $Yes) {
+        Write-Host "Artwork / Cover image path or URL [Default: '$artPromptDefault', Enter to skip]: " -NoNewline -ForegroundColor White
+        $artInput = Read-Host
+        if (-not [string]::IsNullOrWhiteSpace($artInput)) {
+            $Artwork = $artInput.Trim('"').Trim("'")
+        } elseif ($detectedArt) {
+            $Artwork = $detectedArt
+        }
+    } elseif ($detectedArt) {
+        $Artwork = $detectedArt
+    }
+}
+if (-not [string]::IsNullOrWhiteSpace($Artwork)) {
+    Write-Success "Artwork: $Artwork"
+}
+
 $brandName = "NagelRepacks"
 
 # STEP 4: Compression & Chunk Size
@@ -239,8 +269,60 @@ if ([string]::IsNullOrWhiteSpace($SplitSize)) {
 }
 Write-Success "Chunk Split Size: $SplitSize"
 
-# STEP 5: Output Folder
-Write-Section "Step 5: Output Location"
+# STEP 5: Output Format
+Write-Section "Step 5: Output Format"
+
+if ([string]::IsNullOrWhiteSpace($Format)) {
+    if (-not $Yes) {
+        Write-Host "Select Output Format:" -ForegroundColor White
+        Write-Host "  [1] Directory / Folder (Default — Setup.exe + .gpack + .gpk chunks)" -ForegroundColor Green
+        Write-Host "  [2] ISO Disc Image (.iso)"
+        Write-Host "  [3] ZIP Archive (.zip)"
+        Write-Host "  [4] RAR Archive (.rar)"
+        Write-Host "  [5] Parted RAR Multi-Volume Archive (.part1.rar, .part2.rar, ...)"
+        Write-Host "Choice [1-5, Default: 1]: " -NoNewline -ForegroundColor White
+        $formatChoice = Read-Host
+        $Format = switch ($formatChoice) {
+            "2" { "iso" }
+            "3" { "zip" }
+            "4" { "rar" }
+            "5" { "parted-rar" }
+            Default { "directory" }
+        }
+    } else {
+        $Format = "directory"
+    }
+}
+Write-Success "Output Format: $Format"
+
+if ($Format -eq "parted-rar" -and [string]::IsNullOrWhiteSpace($PartSize)) {
+    if (-not $Yes) {
+        Write-Host "`nSelect RAR Part / Volume Size:" -ForegroundColor White
+        Write-Host "  [1] 4 GB (Standard FAT32 & USB drive compatible — Recommended)" -ForegroundColor Green
+        Write-Host "  [2] 2 GB"
+        Write-Host "  [3] 1 GB"
+        Write-Host "  [4] 500 MB"
+        Write-Host "  [5] Custom size"
+        Write-Host "Choice [1-5, Default: 1]: " -NoNewline -ForegroundColor White
+        $partChoice = Read-Host
+        $PartSize = switch ($partChoice) {
+            "2" { "2GB" }
+            "3" { "1GB" }
+            "4" { "500MB" }
+            "5" {
+                Write-Host "Enter custom size (e.g. 500MB, 1.5GB): " -NoNewline -ForegroundColor White
+                (Read-Host).Trim()
+            }
+            Default { "4GB" }
+        }
+    } else {
+        $PartSize = "4GB"
+    }
+    Write-Success "RAR Part Size: $PartSize"
+}
+
+# STEP 6: Output Folder
+Write-Section "Step 6: Output Location"
 $defaultOutput = Split-Path $SourceDir -Parent
 if ([string]::IsNullOrWhiteSpace($OutputDir)) {
     if (-not $Yes) {
@@ -253,22 +335,37 @@ if ([string]::IsNullOrWhiteSpace($OutputDir)) {
 }
 Write-Success "Output Base Folder: $OutputDir"
 
-# STEP 6: Summary & Confirmation
-Write-Section "Step 6: Summary & Build"
+# STEP 7: Summary & Confirmation
+Write-Section "Step 7: Summary & Build"
+
+$targetPreview = switch ($Format) {
+    "iso" { "$OutputDir\$GameName-$brandName.iso" }
+    "zip" { "$OutputDir\$GameName-$brandName.zip" }
+    "rar" { "$OutputDir\$GameName-$brandName.rar" }
+    "parted-rar" { "$OutputDir\$GameName-$brandName.part1.rar" }
+    Default { "$OutputDir\$GameName-$brandName" }
+}
 
 Write-Host "==================================================" -ForegroundColor Cyan
 Write-Host " Game:         $GameName (v$Version)" -ForegroundColor White
 Write-Host " Source:       $SourceDir" -ForegroundColor White
 Write-Host " Main Exe:     $detectedExe" -ForegroundColor White
+if (-not [string]::IsNullOrWhiteSpace($Artwork)) {
+    Write-Host " Artwork:      $Artwork" -ForegroundColor White
+}
 Write-Host " Compression:  $Compression" -ForegroundColor White
 Write-Host " Split Size:   $SplitSize" -ForegroundColor White
+Write-Host " Format:       $Format" -ForegroundColor White
+if ($Format -eq "parted-rar" -and -not [string]::IsNullOrWhiteSpace($PartSize)) {
+    Write-Host " Part Size:    $PartSize" -ForegroundColor White
+}
 Write-Host " Brand:        $brandName" -ForegroundColor White
-Write-Host " Output:       $OutputDir\$GameName-$brandName" -ForegroundColor White
+Write-Host " Target:       $targetPreview" -ForegroundColor White
 Write-Host "==================================================" -ForegroundColor Cyan
 
 if (-not $Yes) {
     Write-Host "`nWhat would you like to do?" -ForegroundColor White
-    Write-Host "  [1] Build Repack Installer Now (Setup.exe + .gpack + .gpk)" -ForegroundColor Green
+    Write-Host "  [1] Build Repack Installer Now" -ForegroundColor Green
     Write-Host "  [2] Generate .gpack.yaml configuration file only" -ForegroundColor Yellow
     Write-Host "  [3] Cancel" -ForegroundColor Red
     Write-Host "Choice [1-3, Default: 1]: " -NoNewline -ForegroundColor White
@@ -299,12 +396,17 @@ $buildArgs = @(
     "--output", $OutputDir,
     "--compression", $Compression,
     "--split-size", $SplitSize,
+    "--format", $Format,
     "--desktop-shortcut",
     "--start-menu-shortcut",
     "--exclude", "*.log",
     "--exclude", "*.tmp",
     "--exclude", "CrashDumps/**"
 )
+
+if (-not [string]::IsNullOrWhiteSpace($PartSize)) {
+    $buildArgs += @("--part-size", $PartSize)
+}
 
 if (-not [string]::IsNullOrWhiteSpace($Edition)) {
     $buildArgs += @("--edition", $Edition)

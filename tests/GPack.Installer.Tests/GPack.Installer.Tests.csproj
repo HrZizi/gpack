@@ -21,6 +21,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\GPack.Installer.Core\GPack.Installer.Core.csproj" />
     <ProjectReference Include="..\..\src\GPack.Builder\GPack.Builder.csproj" />
+    <ProjectReference Include="..\..\src\GPack.Cli\GPack.Cli.csproj" />
   </ItemGroup>
 
 </Project>

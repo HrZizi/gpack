@@ -51,6 +51,30 @@ public static class ConfigurationValidator
             errors.Add($"Split size must be at least 1MB (was {config.Package.SplitSizeBytes} bytes).");
         }
 
+        if (!string.IsNullOrWhiteSpace(config.Package.Format))
+        {
+            if (!Models.PackageOutputFormatExtensions.TryParseFormat(config.Package.Format, out _))
+            {
+                errors.Add($"Unsupported output format: '{config.Package.Format}'. Supported formats: directory, iso, zip, rar, parted-rar");
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(config.Package.PartSize))
+        {
+            try
+            {
+                long partBytes = Files.SizeFormatter.ParseSize(config.Package.PartSize);
+                if (partBytes < 1024 * 1024)
+                {
+                    errors.Add($"Part size must be at least 1MB (was {config.Package.PartSize}).");
+                }
+            }
+            catch (Exception ex)
+            {
+                errors.Add($"Invalid part size format '{config.Package.PartSize}': {ex.Message}");
+            }
+        }
+
         return errors;
     }
 }

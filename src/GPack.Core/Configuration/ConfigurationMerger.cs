@@ -68,6 +68,10 @@ public static class ConfigurationMerger
             result.Launch.WorkingDirectory = overrideConfig.Launch.WorkingDirectory;
 
         // Merge Package
+        if (!string.IsNullOrWhiteSpace(overrideConfig.Package.Format))
+            result.Package.Format = overrideConfig.Package.Format;
+        if (!string.IsNullOrWhiteSpace(overrideConfig.Package.PartSize))
+            result.Package.PartSize = overrideConfig.Package.PartSize;
         if (!string.IsNullOrWhiteSpace(overrideConfig.Package.Compression))
             result.Package.Compression = overrideConfig.Package.Compression;
         if (overrideConfig.Package.CompressionLevel.HasValue)

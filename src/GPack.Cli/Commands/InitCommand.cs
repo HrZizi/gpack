@@ -62,6 +62,7 @@ public static class InitCommand
             },
             Package = new PackageConfig
             {
+                Format = "directory",
                 Compression = "balanced",
                 SplitSize = "4GB"
             },

@@ -3,6 +3,7 @@ using GPack.Core.Configuration;
 using GPack.Core.Hashing;
 using GPack.Core.Logging;
 using GPack.Core.Manifest;
+using GPack.Core.Models;
 using GPack.Installer.Core;
 using Xunit;
 
@@ -152,4 +153,116 @@ public class EndToEndPackagingAndInstallerTests
             }
         }
     }
+
+    [Fact]
+    public async Task LoadManifestAsync_FromZipAndIso_LoadsManifestSuccessfully()
+    {
+        string tempDir = Path.Combine(Path.GetTempPath(), "gpack-reader-test-" + Guid.NewGuid().ToString("N"));
+        string sourceDir = Path.Combine(tempDir, "SourceGame");
+        string zipOut = Path.Combine(tempDir, "game.zip");
+        string isoOut = Path.Combine(tempDir, "game.iso");
+
+        Directory.CreateDirectory(sourceDir);
+        await File.WriteAllTextAsync(Path.Combine(sourceDir, "Game.exe"), "game");
+
+        try
+        {
+            var config = new BuildConfiguration
+            {
+                Game = new GameConfig { Name = "ReaderTestGame", Version = "2.0.0" },
+                Source = new SourceConfig { Directory = sourceDir },
+                Launch = new LaunchConfig { Executable = "Game.exe" },
+                Package = new PackageConfig { Compression = "none", OutputDirectory = tempDir }
+            };
+
+            // Build ZIP
+            config.Package.Format = "zip";
+            var engine = new BuildEngine(new ConsoleLogger(quiet: true));
+            var zipResult = await engine.BuildAsync(config);
+            Assert.True(zipResult.Success);
+            Assert.NotNull(zipResult.OutputArtifactPath);
+
+            var zipManifest = await PackageReader.LoadManifestAsync(zipResult.OutputArtifactPath);
+            Assert.Equal("ReaderTestGame", zipManifest.Game.Name);
+            Assert.Equal("2.0.0", zipManifest.Game.Version);
+
+            // Build ISO
+            config.Package.Format = "iso";
+            var isoResult = await engine.BuildAsync(config);
+            Assert.True(isoResult.Success);
+            Assert.NotNull(isoResult.OutputArtifactPath);
+
+            var isoManifest = await PackageReader.LoadManifestAsync(isoResult.OutputArtifactPath);
+            Assert.Equal("ReaderTestGame", isoManifest.Game.Name);
+            Assert.Equal("2.0.0", isoManifest.Game.Version);
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir))
+            {
+                try { Directory.Delete(tempDir, recursive: true); } catch { }
+            }
+        }
+    }
+
+    [Fact]
+    public async Task ConvertCommand_ConvertsBetweenZipAndIsoAndDirectory()
+    {
+        string tempDir = Path.Combine(Path.GetTempPath(), "gpack-convert-test-" + Guid.NewGuid().ToString("N"));
+        string sourceDir = Path.Combine(tempDir, "SourceGame");
+        string outDir = Path.Combine(tempDir, "Outputs");
+
+        Directory.CreateDirectory(sourceDir);
+        await File.WriteAllTextAsync(Path.Combine(sourceDir, "Game.exe"), "executable-data");
+        await File.WriteAllTextAsync(Path.Combine(sourceDir, "content.dat"), "game-assets");
+
+        try
+        {
+            // 1. Build initial repack as ZIP
+            var config = new BuildConfiguration
+            {
+                Game = new GameConfig { Name = "ConvertGame", Version = "1.2.0" },
+                Source = new SourceConfig { Directory = sourceDir },
+                Launch = new LaunchConfig { Executable = "Game.exe" },
+                Package = new PackageConfig { Format = "zip", OutputDirectory = outDir }
+            };
+
+            var engine = new BuildEngine(new ConsoleLogger(quiet: true));
+            var zipResult = await engine.BuildAsync(config);
+            Assert.True(zipResult.Success);
+            string zipPath = zipResult.OutputArtifactPath!;
+            Assert.True(File.Exists(zipPath));
+
+            // 2. Convert ZIP -> ISO
+            var logger = new ConsoleLogger(quiet: true);
+            int convertToIsoExit = await GPack.Cli.Commands.ConvertCommand.ExecuteAsync(
+                new[] { zipPath, "--format", "iso", "--output", outDir }, logger);
+            Assert.Equal(ExitCodes.Success, convertToIsoExit);
+
+            string expectedIso = Path.Combine(outDir, "ConvertGame-NagelRepacks.iso");
+            Assert.True(File.Exists(expectedIso));
+
+            var isoManifest = await PackageReader.LoadManifestAsync(expectedIso);
+            Assert.Equal("ConvertGame", isoManifest.Game.Name);
+            Assert.Equal("1.2.0", isoManifest.Game.Version);
+
+            // 3. Convert ISO -> Directory
+            int convertToDirExit = await GPack.Cli.Commands.ConvertCommand.ExecuteAsync(
+                new[] { expectedIso, "--format", "directory", "--output", Path.Combine(outDir, "ExtractedFolder") }, logger);
+            Assert.Equal(ExitCodes.Success, convertToDirExit);
+
+            string expectedDir = Path.Combine(outDir, "ExtractedFolder", "ConvertGame-NagelRepacks");
+            Assert.True(Directory.Exists(expectedDir));
+            Assert.True(File.Exists(Path.Combine(expectedDir, "ConvertGame.gpack")));
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir))
+            {
+                try { Directory.Delete(tempDir, recursive: true); } catch { }
+            }
+        }
+    }
 }
+
+

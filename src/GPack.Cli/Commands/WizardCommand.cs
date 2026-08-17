@@ -22,6 +22,8 @@ public static class WizardCommand
         string? chosenExe = null;
         string? compression = null;
         string? splitSize = null;
+        string? outputFormat = null;
+        string? partSize = null;
         string? outputDir = null;
         string? setupExePath = null;
         bool? desktopShortcut = null;
@@ -56,6 +58,14 @@ public static class WizardCommand
             else if (a.Equals("--split-size", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length)
             {
                 splitSize = args[++i];
+            }
+            else if ((a.Equals("--format", StringComparison.OrdinalIgnoreCase) || a.Equals("-f", StringComparison.OrdinalIgnoreCase) || a.Equals("--output-format", StringComparison.OrdinalIgnoreCase)) && i + 1 < args.Length)
+            {
+                outputFormat = args[++i];
+            }
+            else if (a.Equals("--part-size", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length)
+            {
+                partSize = args[++i];
             }
             else if ((a.Equals("--output", StringComparison.OrdinalIgnoreCase) || a.Equals("-o", StringComparison.OrdinalIgnoreCase)) && i + 1 < args.Length)
             {
@@ -210,6 +220,35 @@ public static class WizardCommand
         }
         Console.WriteLine($"[✓] Version: {gameVersion}");
 
+        if (string.IsNullOrWhiteSpace(gameArtwork))
+        {
+            string[] possibleArtworks = { "artwork.jpg", "artwork.png", "cover.jpg", "cover.png", "banner.jpg", "banner.png" };
+            string? detectedArt = possibleArtworks.Select(a => Path.Combine(sourceDir, a)).FirstOrDefault(File.Exists);
+            string artDefaultText = detectedArt != null ? Path.GetFileName(detectedArt) : "Default (Enter to skip)";
+
+            if (!nonInteractive)
+            {
+                Console.Write($"Artwork / Cover image path or URL [Default: {artDefaultText}]: ");
+                var artInput = Console.ReadLine()?.Trim('"', '\'');
+                if (!string.IsNullOrWhiteSpace(artInput))
+                {
+                    gameArtwork = artInput;
+                }
+                else if (detectedArt != null)
+                {
+                    gameArtwork = detectedArt;
+                }
+            }
+            else if (detectedArt != null)
+            {
+                gameArtwork = detectedArt;
+            }
+        }
+        if (!string.IsNullOrWhiteSpace(gameArtwork))
+        {
+            Console.WriteLine($"[✓] Artwork: {gameArtwork}");
+        }
+
         // 4. Compression Preset
         if (string.IsNullOrWhiteSpace(compression))
         {
@@ -264,7 +303,67 @@ public static class WizardCommand
         }
         Console.WriteLine($"[✓] Split Size: {splitSize}");
 
-        // 6. Output Folder
+        // 6. Output Format
+        if (string.IsNullOrWhiteSpace(outputFormat))
+        {
+            if (!nonInteractive)
+            {
+                Console.WriteLine("\nSelect Output Format:");
+                Console.WriteLine("  [1] Directory / Folder (Default — Setup.exe + .gpack + .gpk chunks)");
+                Console.WriteLine("  [2] ISO Disc Image (.iso)");
+                Console.WriteLine("  [3] ZIP Archive (.zip)");
+                Console.WriteLine("  [4] RAR Archive (.rar)");
+                Console.WriteLine("  [5] Parted RAR Multi-Volume Archive (.part1.rar, .part2.rar, ...)");
+                Console.Write("Choice [1-5, Default: 1]: ");
+                var formatInput = Console.ReadLine()?.Trim();
+                outputFormat = formatInput switch
+                {
+                    "2" => "iso",
+                    "3" => "zip",
+                    "4" => "rar",
+                    "5" => "parted-rar",
+                    _ => "directory"
+                };
+            }
+            else
+            {
+                outputFormat = "directory";
+            }
+        }
+
+        var parsedFormat = PackageOutputFormatExtensions.ParseFormat(outputFormat);
+        Console.WriteLine($"[✓] Output Format: {parsedFormat.ToFriendlyString()}");
+
+        // 7. Parted RAR Part Size (if applicable)
+        if (parsedFormat == PackageOutputFormat.PartedRar && string.IsNullOrWhiteSpace(partSize))
+        {
+            if (!nonInteractive)
+            {
+                Console.WriteLine("\nSelect RAR Part / Volume Size:");
+                Console.WriteLine("  [1] 4 GB (Standard FAT32 & USB drive compatible — Recommended)");
+                Console.WriteLine("  [2] 2 GB");
+                Console.WriteLine("  [3] 1 GB");
+                Console.WriteLine("  [4] 500 MB");
+                Console.WriteLine("  [5] Custom size");
+                Console.Write("Choice [1-5, Default: 1]: ");
+                var partInput = Console.ReadLine()?.Trim();
+                partSize = partInput switch
+                {
+                    "2" => "2GB",
+                    "3" => "1GB",
+                    "4" => "500MB",
+                    "5" => PromptCustomSplitSize(),
+                    _ => "4GB"
+                };
+            }
+            else
+            {
+                partSize = "4GB";
+            }
+            Console.WriteLine($"[✓] RAR Part Size: {partSize}");
+        }
+
+        // 8. Output Folder
         string defaultOutput = Path.GetDirectoryName(sourceDir) ?? Directory.GetCurrentDirectory();
         if (string.IsNullOrWhiteSpace(outputDir))
         {
@@ -281,22 +380,40 @@ public static class WizardCommand
         }
         Console.WriteLine($"[✓] Output Folder: {outputDir}");
 
-        // 7. Summary & Confirmation
+        // 9. Summary & Confirmation
+        string targetPreview = parsedFormat switch
+        {
+            PackageOutputFormat.Iso => Path.Combine(outputDir, $"{gameName}-NagelRepacks.iso"),
+            PackageOutputFormat.Zip => Path.Combine(outputDir, $"{gameName}-NagelRepacks.zip"),
+            PackageOutputFormat.Rar => Path.Combine(outputDir, $"{gameName}-NagelRepacks.rar"),
+            PackageOutputFormat.PartedRar => Path.Combine(outputDir, $"{gameName}-NagelRepacks.part1.rar"),
+            _ => Path.Combine(outputDir, $"{gameName}-NagelRepacks")
+        };
+
         Console.WriteLine();
         Console.WriteLine("==================================================");
         Console.WriteLine($" Game:        {gameName} (v{gameVersion})");
         Console.WriteLine($" Source:      {sourceDir}");
         Console.WriteLine($" Executable:  {chosenExe}");
+        if (!string.IsNullOrWhiteSpace(gameArtwork))
+        {
+            Console.WriteLine($" Artwork:     {gameArtwork}");
+        }
         Console.WriteLine($" Compression: {compression}");
         Console.WriteLine($" Split Size:  {splitSize}");
-        Console.WriteLine($" Output:      {Path.Combine(outputDir, $"{gameName}-NagelRepacks")}");
+        Console.WriteLine($" Format:      {parsedFormat.ToFriendlyString()}");
+        if (parsedFormat == PackageOutputFormat.PartedRar && !string.IsNullOrWhiteSpace(partSize))
+        {
+            Console.WriteLine($" Part Size:   {partSize}");
+        }
+        Console.WriteLine($" Target:      {targetPreview}");
         Console.WriteLine("==================================================");
         Console.WriteLine();
 
         if (!autoConfirm && !nonInteractive)
         {
             Console.WriteLine("Action:");
-            Console.WriteLine("  [1] Build Repack Installer Now (Setup.exe + .gpack + .gpk)");
+            Console.WriteLine("  [1] Build Repack Installer Now");
             Console.WriteLine("  [2] Generate .gpack.yaml configuration only");
             Console.WriteLine("  [3] Cancel");
             Console.Write("Choice [1-3, Default: 1]: ");
@@ -325,10 +442,17 @@ public static class WizardCommand
             "--output", outputDir,
             "--compression", compression,
             "--split-size", splitSize,
+            "--format", outputFormat,
             "--exclude", "*.log",
             "--exclude", "*.tmp",
             "--exclude", "CrashDumps/**"
         };
+
+        if (!string.IsNullOrWhiteSpace(partSize))
+        {
+            buildArgs.Add("--part-size");
+            buildArgs.Add(partSize);
+        }
 
         if (desktopShortcut ?? true) buildArgs.Add("--desktop-shortcut");
         if (startMenuShortcut ?? true) buildArgs.Add("--start-menu-shortcut");
@@ -353,7 +477,7 @@ public static class WizardCommand
 
     private static string PromptCustomSplitSize()
     {
-        Console.Write("Enter custom chunk size (e.g. 500MB, 1.5GB): ");
+        Console.Write("Enter custom size (e.g. 500MB, 1.5GB): ");
         var s = Console.ReadLine()?.Trim();
         return !string.IsNullOrWhiteSpace(s) ? s : "4GB";
     }

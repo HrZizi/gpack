@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using System.IO.Compression;
+using DiscUtils.Iso9660;
 using GPack.Core.Compression;
 using GPack.Core.Files;
 using GPack.Core.Logging;
@@ -28,8 +30,6 @@ public class PackageReader
 
     public static async Task<PackageManifest> LoadManifestAsync(string manifestOrPackageDirectory, CancellationToken cancellationToken = default)
     {
-        string manifestPath = manifestOrPackageDirectory;
-
         if (Directory.Exists(manifestOrPackageDirectory))
         {
             var gpackFiles = Directory.GetFiles(manifestOrPackageDirectory, "*.gpack");
@@ -37,10 +37,50 @@ public class PackageReader
             {
                 throw new FileNotFoundException($"No .gpack manifest file found in directory '{manifestOrPackageDirectory}'.");
             }
-            manifestPath = gpackFiles[0];
+            return await ManifestSerializer.LoadFromFileAsync(gpackFiles[0], cancellationToken);
         }
 
-        return await ManifestSerializer.LoadFromFileAsync(manifestPath, cancellationToken);
+        if (File.Exists(manifestOrPackageDirectory))
+        {
+            string ext = Path.GetExtension(manifestOrPackageDirectory);
+
+            if (ext.Equals(".zip", StringComparison.OrdinalIgnoreCase))
+            {
+                using var zipArchive = ZipFile.OpenRead(manifestOrPackageDirectory);
+                var gpackEntry = zipArchive.Entries.FirstOrDefault(e => e.FullName.EndsWith(".gpack", StringComparison.OrdinalIgnoreCase));
+                if (gpackEntry == null)
+                {
+                    throw new FileNotFoundException($"No .gpack manifest file found inside ZIP archive '{manifestOrPackageDirectory}'.");
+                }
+
+                using var entryStream = gpackEntry.Open();
+                using var reader = new StreamReader(entryStream);
+                string json = await reader.ReadToEndAsync(cancellationToken);
+                return ManifestSerializer.Deserialize(json);
+            }
+
+            if (ext.Equals(".iso", StringComparison.OrdinalIgnoreCase))
+            {
+                using var isoFile = File.OpenRead(manifestOrPackageDirectory);
+                using var cdReader = new CDReader(isoFile, joliet: true);
+                var gpackFile = cdReader.GetFiles(string.Empty, "*.gpack", SearchOption.TopDirectoryOnly).FirstOrDefault()
+                    ?? cdReader.GetFiles(string.Empty, "*.*", SearchOption.AllDirectories).FirstOrDefault(f => f.EndsWith(".gpack", StringComparison.OrdinalIgnoreCase));
+
+                if (gpackFile == null)
+                {
+                    throw new FileNotFoundException($"No .gpack manifest file found inside ISO image '{manifestOrPackageDirectory}'.");
+                }
+
+                using var entryStream = cdReader.OpenFile(gpackFile, FileMode.Open, FileAccess.Read);
+                using var reader = new StreamReader(entryStream);
+                string json = await reader.ReadToEndAsync(cancellationToken);
+                return ManifestSerializer.Deserialize(json);
+            }
+
+            return await ManifestSerializer.LoadFromFileAsync(manifestOrPackageDirectory, cancellationToken);
+        }
+
+        throw new FileNotFoundException($"Package or manifest path not found: '{manifestOrPackageDirectory}'");
     }
 
     public async Task<PackageExtractionResult> ExtractPackageAsync(

@@ -6,7 +6,7 @@
         xmlns:vm="clr-namespace:GPack.Installer.UI.ViewModels"
         mc:Ignorable="d"
         Title="{Binding Brand}"
-        Width="780" Height="480"
+        Width="850" Height="480"
         WindowStartupLocation="CenterScreen"
         WindowStyle="None"
         AllowsTransparency="True"
@@ -24,21 +24,56 @@
             MouseLeftButtonDown="Window_MouseLeftButtonDown">
         <Grid>
             <Grid.ColumnDefinitions>
-                <!-- 1. Broader Artwork Area (~240px) -->
-                <ColumnDefinition Width="240"/>
+                <!-- 1. Standard 2:3 Poster Ratio Artwork Strip (320x480) -->
+                <ColumnDefinition Width="320"/>
                 <!-- 2. Main Content Area -->
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
-            <!-- LEFT ARTWORK PANEL: Dark background with prominent glowing artwork & branding -->
-            <Border Grid.Column="0"
-                    Background="{StaticResource SidebarBgBrush}"
-                    BorderBrush="{StaticResource BorderBrush}"
-                    BorderThickness="0,0,1,0"
-                    ClipToBounds="True">
-                <Grid>
-                    <!-- 1. Ambient Radial Bloom Glow behind central ornament -->
-                    <Ellipse Width="240" Height="360"
+            <!-- LEFT ARTWORK PANEL -->
+            <Grid Grid.Column="0" ClipToBounds="True">
+                <!-- 1. Background fallback color -->
+                <Rectangle Fill="{StaticResource SidebarBgBrush}"/>
+
+                <!-- 2. CUSTOM ARTWORK VIEW (When game artwork is provided): Edge-to-edge symmetrically centered poster -->
+                <Grid Visibility="{Binding HasCustomArtwork, Converter={StaticResource BoolToVis}}">
+                    <!-- Edge-to-Edge Symmetrically Centered Artwork Image -->
+                    <Rectangle HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                        <Rectangle.Fill>
+                            <ImageBrush ImageSource="{Binding ArtworkImage}"
+                                        Stretch="UniformToFill"
+                                        AlignmentX="Center"
+                                        AlignmentY="Center"
+                                        RenderOptions.BitmapScalingMode="HighQuality"/>
+                        </Rectangle.Fill>
+                    </Rectangle>
+
+                    <!-- Top subtle dark gradient overlay for top window edge integration -->
+                    <Rectangle VerticalAlignment="Top" Height="48" IsHitTestVisible="False">
+                        <Rectangle.Fill>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                <GradientStop Color="#40000000" Offset="0"/>
+                                <GradientStop Color="#00000000" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Rectangle.Fill>
+                    </Rectangle>
+
+                    <!-- Bottom dark gradient overlay for branding readability -->
+                    <Rectangle VerticalAlignment="Bottom" Height="80" IsHitTestVisible="False">
+                        <Rectangle.Fill>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                <GradientStop Color="#00000000" Offset="0"/>
+                                <GradientStop Color="#60000000" Offset="0.45"/>
+                                <GradientStop Color="#D0080A0D" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Rectangle.Fill>
+                    </Rectangle>
+                </Grid>
+
+                <!-- 3. DEFAULT ARTWORK VIEW (When no artwork is provided): Full-Height Glowing Emblem with Ambient Radial Glow -->
+                <Grid Visibility="{Binding IsDefaultArtwork, Converter={StaticResource BoolToVis}}">
+                    <!-- Ambient Radial Bloom Glow behind central emblem -->
+                    <Ellipse Width="320" Height="440"
                              HorizontalAlignment="Center" VerticalAlignment="Center"
                              Opacity="0.4"
                              IsHitTestVisible="False">
@@ -51,12 +86,12 @@
                         </Ellipse.Fill>
                     </Ellipse>
 
-                    <!-- 2. Outer Radiant Cyan Glow Layer -->
+                    <!-- Outer Radiant Cyan Glow Layer (Full top-to-bottom height) -->
                     <Image Source="{Binding ArtworkImage}"
                            Stretch="Uniform"
                            HorizontalAlignment="Center"
                            VerticalAlignment="Stretch"
-                           Margin="12,18,12,38"
+                           Margin="14,18,14,38"
                            RenderOptions.BitmapScalingMode="HighQuality">
                         <Image.Effect>
                             <DropShadowEffect Color="#00E5FF"
@@ -67,12 +102,12 @@
                         </Image.Effect>
                     </Image>
 
-                    <!-- 3. Tight Inner Cyan Edge Glow Layer -->
+                    <!-- Tight Inner Cyan Edge Glow Layer -->
                     <Image Source="{Binding ArtworkImage}"
                            Stretch="Uniform"
                            HorizontalAlignment="Center"
                            VerticalAlignment="Stretch"
-                           Margin="12,18,12,38"
+                           Margin="14,18,14,38"
                            RenderOptions.BitmapScalingMode="HighQuality">
                         <Image.Effect>
                             <DropShadowEffect Color="#B8F7FF"
@@ -82,18 +117,29 @@
                                               RenderingBias="Quality"/>
                         </Image.Effect>
                     </Image>
-
-                    <!-- 4. NAGELREPACKS Branding Text -->
-                    <TextBlock Text="N A G E L R E P A C K S"
-                               Foreground="{StaticResource TextHeaderMutedBrush}"
-                               FontWeight="SemiBold"
-                               FontSize="10"
-                               HorizontalAlignment="Center"
-                               VerticalAlignment="Bottom"
-                               Margin="0,0,0,16"
-                               Opacity="0.85"/>
                 </Grid>
-            </Border>
+
+                <!-- 4. Right border divider line separating left strip from main content -->
+                <Border BorderBrush="{StaticResource BorderBrush}"
+                        BorderThickness="0,0,1,0"
+                        HorizontalAlignment="Stretch"
+                        VerticalAlignment="Stretch"
+                        IsHitTestVisible="False"/>
+
+                <!-- 5. NAGELREPACKS Branding Text -->
+                <TextBlock Text="N A G E L R E P A C K S"
+                           Foreground="{StaticResource TextHeaderMutedBrush}"
+                           FontWeight="SemiBold"
+                           FontSize="10"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Bottom"
+                           Margin="0,0,0,16"
+                           Opacity="0.85">
+                    <TextBlock.Effect>
+                        <DropShadowEffect Color="#000000" BlurRadius="4" ShadowDepth="1" Opacity="0.9"/>
+                    </TextBlock.Effect>
+                </TextBlock>
+            </Grid>
 
             <!-- MAIN CONTENT AREA -->
             <Grid Grid.Column="1" Background="{StaticResource WindowBgBrush}">

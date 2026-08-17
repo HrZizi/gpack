@@ -28,6 +28,7 @@
 
 ## Features
 
+- **Multi-Format Output Architecture**: Supports outputting repacks as a standard Directory (default), ISO Disc Image (`.iso`), ZIP Archive (`.zip`), RAR Archive (`.rar`), or Parted RAR Multi-Volume Archives (`.part1.rar`, `.part2.rar`, ...).
 - **Chunked Payload Architecture**: Splits packages into manageable `.gpk` chunks (e.g. 4 GB default or customizable split sizes) for smooth network transfers, external drive copying, and corruption isolation.
 - **Streaming Zstandard Compression**: Supports multiple compression presets (`none`, `fast`, `balanced`, `maximum`) with bounded memory utilization.
 - **SHA-256 Checksums**: Integrity verification on individual chunks and unpacked game files.
@@ -82,7 +83,7 @@ The quickest and easiest way to package a game into a NagelRepacks installer is 
 ```powershell
 .\New-GameRepack.ps1
 ```
-*(Supports browsing for folders with GUI folder picker, auto-inspecting executables, and setting compression/split sizes step-by-step)*
+*(Supports browsing for folders with GUI folder picker, auto-inspecting executables, and setting output format, compression, and split sizes step-by-step)*
 
 ### Via CLI Command:
 ```powershell
@@ -96,7 +97,7 @@ gpack wizard "D:\Games\Cyberpunk 2077"
 ## CLI Usage
 
 ### 1. `gpack wizard`
-Interactive step-by-step repack generator.
+Interactive step-by-step repack generator (prompts for source folder, executables, output format, compression, and destination).
 
 ### 2. `gpack init`
 Create a starter YAML package definition from an installed game directory:
@@ -104,17 +105,29 @@ Create a starter YAML package definition from an installed game directory:
 gpack init "D:\Games\Cyberpunk 2077"
 ```
 
-### 2. `gpack inspect`
+### 3. `gpack inspect`
 Analyze an installation directory, identify main executables, and find largest files or logs:
 ```powershell
 gpack inspect "D:\Games\Cyberpunk 2077" --largest
 ```
 
-### 3. `gpack build`
-Build a `.gpack` package and installer from CLI flags or configuration files:
+### 4. `gpack build`
+Build a repack installer into any supported output format:
 ```powershell
-# Via CLI arguments:
-gpack build --source "D:\Games\Cyberpunk 2077" --name "Cyberpunk 2077" --version "2.3" --exe "bin\x64\Cyberpunk2077.exe" --output "D:\Repacks" --compression balanced
+# Default directory repack:
+gpack build --source "D:\Games\Cyberpunk 2077" --name "Cyberpunk 2077" --version "2.3" --exe "bin\x64\Cyberpunk2077.exe" --output "D:\Repacks"
+
+# ISO Disc Image output (.iso):
+gpack build --source "D:\Games\Cyberpunk 2077" --name "Cyberpunk 2077" --format iso --output "D:\Repacks"
+
+# ZIP Archive output (.zip):
+gpack build --source "D:\Games\Cyberpunk 2077" --name "Cyberpunk 2077" --format zip --output "D:\Repacks"
+
+# Single RAR Archive output (.rar):
+gpack build --source "D:\Games\Cyberpunk 2077" --name "Cyberpunk 2077" --format rar --output "D:\Repacks"
+
+# Parted Multi-Volume RAR output (.part1.rar, .part2.rar, ...):
+gpack build --source "D:\Games\Cyberpunk 2077" --name "Cyberpunk 2077" --format parted-rar --part-size 2GB --output "D:\Repacks"
 
 # Via YAML configuration:
 gpack build cyberpunk.gpack.yaml
@@ -123,25 +136,43 @@ gpack build cyberpunk.gpack.yaml
 gpack build cyberpunk.gpack.yaml --json --non-interactive
 ```
 
-### 4. `gpack info`
-Inspect package manifest and payload statistics:
+### 5. `gpack convert` (or `gpack pack`)
+Convert an existing repack between folder, `.zip`, `.iso`, `.rar`, and multi-volume `.part1.rar` archives without recompressing game assets:
 ```powershell
-gpack info "D:\Repacks\Cyberpunk-2077-NagelRepacks\Cyberpunk-2077.gpack"
+# Convert ZIP repack to ISO image (automatically re-chunks to <= 2GB for ISO 9660 compatibility):
+gpack convert "D:\Repacks\Cyberpunk-2077-NagelRepacks.zip" --format iso
+
+# Convert repack directory to ZIP archive:
+gpack convert "D:\Repacks\Cyberpunk-2077-NagelRepacks" --format zip
+
+# Convert ISO disc image to Directory:
+gpack convert "D:\Repacks\Cyberpunk-2077-NagelRepacks.iso" --format directory
+
+# Convert repack directory to Parted Multi-Volume RAR:
+gpack convert "D:\Repacks\Cyberpunk-2077-NagelRepacks" --format parted-rar --part-size 2GB
 ```
 
-### 5. `gpack verify`
+### 6. `gpack info`
+Inspect package manifest and payload statistics from folder, `.gpack`, `.iso`, or `.zip`:
+```powershell
+gpack info "D:\Repacks\Cyberpunk-2077-NagelRepacks\Cyberpunk-2077.gpack"
+gpack info "D:\Repacks\Cyberpunk-2077-NagelRepacks.iso"
+gpack info "D:\Repacks\Cyberpunk-2077-NagelRepacks.zip"
+```
+
+### 7. `gpack verify`
 Verify chunk hashes and package manifest integrity:
 ```powershell
 gpack verify "D:\Repacks\Cyberpunk-2077-NagelRepacks\Cyberpunk-2077.gpack"
 ```
 
-### 6. `gpack extract`
+### 8. `gpack extract`
 Directly decompress and extract package files to a target directory:
 ```powershell
 gpack extract "D:\Repacks\Cyberpunk-2077-NagelRepacks\Cyberpunk-2077.gpack" --output "D:\TestOutput"
 ```
 
-### 7. `gpack install`
+### 9. `gpack install`
 Perform a full headless installation with shortcut creation and post-install actions:
 ```powershell
 gpack install "D:\Repacks\Cyberpunk-2077-NagelRepacks\Cyberpunk-2077.gpack" --destination "D:\Games\Cyberpunk 2077"
@@ -169,6 +200,8 @@ launch:
   arguments: ""
 
 package:
+  format: directory     # directory | iso | zip | rar | parted-rar
+  partSize: 2GB         # for parted-rar: 500MB | 1GB | 2GB | 4GB | custom
   compression: balanced # none | fast | balanced | maximum
   splitSize: 4GB        # 500MB | 2GB | 4GB | custom bytes
 

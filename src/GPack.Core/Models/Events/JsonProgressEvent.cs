@@ -32,8 +32,16 @@ public class JsonCompleteEvent
     [JsonPropertyName("event")]
     public string Event { get; set; } = "complete";
 
+    [JsonPropertyName("format")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Format { get; set; }
+
     [JsonPropertyName("outputDirectory")]
     public string? OutputDirectory { get; set; }
+
+    [JsonPropertyName("outputArtifact")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? OutputArtifact { get; set; }
 
     [JsonPropertyName("package")]
     public string? Package { get; set; }

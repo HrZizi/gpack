@@ -6,6 +6,15 @@
 
 **NagelRepacks (`gpack`)** is a high-performance, streaming game packaging and installer suite built in .NET 10. It packages locally installed games into portable, verified repack installer bundles (`.gpack` manifests accompanied by chunked `.gpk` payload files and a standalone `Setup.exe` graphical installer).
 
+### Scope
+
+`gpack` is a packaging and backup tool for games you already have
+installed: it inspects a local install, builds a verifiable archive, and
+reinstalls it — with hashes checked at every step. It ships no game
+content, includes no download or sourcing features, and is not a vehicle
+for redistributing commercial titles. Only package your own installs, and
+respect the publishers' terms.
+
 ---
 
 ## Architecture Overview
